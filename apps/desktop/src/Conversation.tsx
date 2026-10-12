@@ -391,6 +391,16 @@ export default function Conversation({
     )?.payload;
     return last?.type === 'native.tasks' ? last.tasks : [];
   }, [events, session?.activeRun?.id]);
+  const taskFirstSeen = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const event of events) {
+      if (event.runId !== session?.activeRun?.id || event.payload.type !== 'native.tasks') continue;
+      const ids = new Set(event.payload.tasks.map((task) => task.id));
+      for (const id of seen.keys()) if (!ids.has(id)) seen.delete(id);
+      for (const id of ids) if (!seen.has(id)) seen.set(id, event.createdAt);
+    }
+    return seen;
+  }, [events, session?.activeRun?.id]);
   const [findOpen, setFindOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -607,9 +617,8 @@ export default function Conversation({
               <TurnView key={turn.id} turn={turn} native={native} live={live} />
             ))}
             {session.activeRun && background && (
-              <div className="background-tasks">
+              <div className="background-tasks" data-connected={connected}>
                 <div className="run-indicator" role="status">
-                  <span className="running-dot" />
                   后台任务{tasks.length ? ` ${tasks.length} 个` : ''} · Claude
                   已答完，任务结束后会接着处理
                   {!ownsRun && ' · 另一连接'}
@@ -617,7 +626,11 @@ export default function Conversation({
                 <ul>
                   {tasks.map((task) => (
                     <li key={task.id}>
-                      <BackgroundTaskProgress task={task} connected={connected} />
+                      <BackgroundTaskProgress
+                        task={task}
+                        connected={connected}
+                        firstSeen={taskFirstSeen.get(task.id)}
+                      />
                       <button
                         type="button"
                         className="button"

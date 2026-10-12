@@ -1674,7 +1674,7 @@ details[open] > summary > .fold-chevron {
 .background-tasks {
   display: grid;
   justify-items: start;
-  gap: 8px;
+  gap: 10px;
 }
 .background-tasks ul {
   display: grid;
@@ -1688,10 +1688,97 @@ details[open] > summary > .fold-chevron {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 14px 16px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-s);
   font-size: 13px;
+  animation: task-arrive 220ms ease-out;
+  transition:
+    border-color 180ms ease-out,
+    background-color 180ms ease-out;
+}
+.background-tasks li:hover {
+  border-color: var(--line);
+  background: var(--surface-2);
+}
+.background-tasks .button {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 5px 12px;
+  font-size: 12px;
+  background: transparent;
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out,
+    transform 160ms ease-out;
+}
+.background-tasks .button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.background-task-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 500;
+}
+.task-wait-mark {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: task-breathe 2.4s ease-in-out infinite;
+}
+.background-task-detail:not([data-state='waiting']) .task-wait-mark {
+  background: var(--muted);
+  animation: none;
+}
+.task-summary-update {
+  display: block;
+  animation: task-update 220ms ease-out;
+}
+@keyframes task-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes task-arrive {
+  from {
+    opacity: 0.65;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes task-update {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .background-tasks li,
+  .task-wait-mark,
+  .task-summary-update {
+    animation: none;
+  }
+  .background-tasks li,
+  .background-tasks .button {
+    transition: none;
+  }
+  .background-tasks .button:active:not(:disabled) {
+    transform: none;
+  }
 }
 .background-task-detail {
   flex: 1;
@@ -1699,14 +1786,14 @@ details[open] > summary > .fold-chevron {
   overflow-wrap: anywhere;
 }
 .background-task-summary {
-  margin: 5px 0;
+  margin: 6px 0 0 16px;
   white-space: pre-wrap;
   max-height: 8em;
   overflow: auto;
 }
 .background-task-meta {
   display: block;
-  margin-top: 4px;
+  margin: 5px 0 0 16px;
   color: var(--muted);
 }
 .composer-area {

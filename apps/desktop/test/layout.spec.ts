@@ -368,6 +368,14 @@ test('a run that goes on only for background tasks looks finished, lists them an
   await expect(panel.getByRole('status')).toContainText('后台任务 2 个');
   await expect(panel.getByRole('listitem')).toHaveText([/完整渲染/, /开发服务器/]);
   await expect(panel.getByText('任务尚未报告进度', { exact: true })).toHaveCount(2);
+  await page.clock.install();
+  await expect(panel.locator('.task-wait-time')).toHaveCount(2);
+  await page.clock.fastForward(65000);
+  await expect(panel.locator('.task-wait-time').first()).toContainText('已等待 1 分');
+  await expect(panel.locator('.task-wait-mark').first()).toHaveCSS(
+    'animation-name',
+    'task-breathe',
+  );
   reportProgress!(
     '[19/41] WebKit home <script>not code</script>',
     new Date(Date.now() - 120000).toISOString(),
@@ -377,10 +385,22 @@ test('a run that goes on only for background tasks looks finished, lists them an
   );
   await expect(panel).toContainText('已运行 1 分 31 秒');
   await expect(panel).toContainText('未收到新进度');
+  await expect(panel.locator('.task-wait-mark').first()).toHaveCSS('animation-name', 'none');
   expect(await panel.locator('script').count()).toBe(0);
-  reportProgress!('[20/41] WebKit next test', new Date().toISOString());
+  reportProgress!(
+    '[20/41] WebKit next test',
+    new Date(await page.evaluate(() => Date.now())).toISOString(),
+  );
   await expect(panel.locator('.background-task-summary')).toHaveText('[20/41] WebKit next test');
   await expect(panel).not.toContainText('未收到新进度');
+  await expect(panel.locator('.task-wait-mark').first()).toHaveCSS(
+    'animation-name',
+    'task-breathe',
+  );
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(panel.locator('.task-wait-mark').first()).toHaveCSS('animation-name', 'none');
+  await expect(panel.locator('.task-summary-update')).toHaveCSS('animation-name', 'none');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(panel.getByText('任务尚未报告进度', { exact: true })).toHaveCount(1);
   // The turn itself is over: its answer shows as final, and the composer offers sending, not stopping.
   await expect(page.locator('.message.assistant')).toContainText('渲染已在后台开始。');
