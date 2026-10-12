@@ -29,6 +29,7 @@ import {
 import type { Session, SessionEvent } from '@cc-desk-tunnel/protocol';
 import { describe, duration, summarize } from './activity.ts';
 import BackgroundTaskProgress from './BackgroundTaskProgress.tsx';
+import RunActivity from './RunActivity.tsx';
 import type { Category } from './activity.ts';
 import type { HistoryState } from './client.ts';
 import QuestionCard, { questionsOf } from './QuestionCard.tsx';
@@ -655,15 +656,13 @@ export default function Conversation({
               </div>
             )}
             {session.activeRun && !background && (
-              <div className="run-indicator" role="status">
-                <span className="running-dot" />
-                {session.activeRun.status !== 'awaiting_approval'
-                  ? '运行中'
-                  : session.activeRun.waiting === 'question'
-                    ? '等待回答'
-                    : '等待审批'}
-                {!ownsRun && ' · 另一连接'}
-              </div>
+              <RunActivity
+                session={session}
+                events={events}
+                connected={connected}
+                ownsRun={ownsRun}
+                now={now}
+              />
             )}
           </div>
         )}

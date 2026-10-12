@@ -1733,6 +1733,48 @@ details[open] > summary > .fold-chevron {
   background: var(--muted);
   animation: none;
 }
+.run-activity {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  font-size: 12px;
+  animation: task-arrive 220ms ease-out;
+}
+.run-activity-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  color: var(--text);
+}
+.run-activity-heading small,
+.run-activity-meta,
+.run-activity-operation,
+.run-activity-tasks,
+.run-activity-note {
+  color: var(--muted);
+}
+.run-activity-meta {
+  font-variant-numeric: tabular-nums;
+}
+.run-activity-meta,
+.run-activity-operation,
+.run-activity-tasks,
+.run-activity-note {
+  margin: 0 0 0 16px;
+  overflow-wrap: anywhere;
+}
+.run-activity-tasks {
+  padding: 0;
+  list-style: none;
+}
+.run-activity:not([data-state='waiting']) .task-wait-mark {
+  animation: none;
+  background: var(--muted);
+}
+.run-activity[data-state='approval'] .task-wait-mark {
+  background: var(--warn);
+}
 .task-summary-update {
   display: block;
   animation: task-update 220ms ease-out;
@@ -1768,6 +1810,7 @@ details[open] > summary > .fold-chevron {
 }
 @media (prefers-reduced-motion: reduce) {
   .background-tasks li,
+  .run-activity,
   .task-wait-mark,
   .task-summary-update {
     animation: none;

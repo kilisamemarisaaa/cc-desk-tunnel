@@ -287,6 +287,10 @@ test('a run that goes on only for background tasks looks finished, lists them an
     { id: 'b2', kind: 'local_bash', description: '开发服务器' },
   ];
   let reportProgress: (summary: string, updatedAt: string) => void;
+  let reportActive: (
+    status: 'running' | 'awaiting_approval' | 'completed',
+    fresh?: string,
+  ) => void;
   const stopped: string[] = [];
   await page.routeWebSocket('ws://127.0.0.1:18890/ws', (route) => {
     const reply = (value: unknown) => route.send(JSON.stringify(value));
@@ -297,6 +301,31 @@ test('a run that goes on only for background tasks looks finished, lists them an
       createdAt: now,
       payload,
     });
+    reportActive = (status, fresh) => {
+      reply({
+        type: 'session.updated',
+        session: {
+          ...session,
+          activeRun: status === 'completed' ? null : { id: runId, connectionId, status },
+        },
+      });
+      if (fresh)
+        reply({
+          type: 'session.event',
+          event: {
+            ...event(7, { type: 'text.delta', messageId: randomUUID(), text: '继续处理。' }),
+            createdAt: fresh,
+          },
+        });
+      // A run-status heartbeat must not reset the age of actual activity.
+      reply({
+        type: 'session.event',
+        event: {
+          ...event(8, { type: 'run.status', status, connectionId }),
+          createdAt: new Date().toISOString(),
+        },
+      });
+    };
     reportProgress = (summary, updatedAt) =>
       reply({
         type: 'session.event',
@@ -416,6 +445,27 @@ test('a run that goes on only for background tasks looks finished, lists them an
   await expect(panel.getByRole('listitem')).toHaveText([/开发服务器/]);
   expect(stopped).toEqual(['b1']);
   await expect(panel.getByRole('button', { name: '全部结束' })).toHaveCount(0);
+  reportActive!('running');
+  const active = page.locator('.run-activity');
+  await expect(active).toContainText('会话未结束 · 暂无新活动');
+  await expect(active).toContainText('子任务尚未结束 · 开发服务器');
+  await expect(active.locator('.task-wait-mark')).toHaveCSS('animation-name', 'none');
+  await expect(active).toContainText('最近活动');
+  await shot(page, '16-会话暂无新活动');
+  reportActive!('running', new Date(await page.evaluate(() => Date.now())).toISOString());
+  await expect(active).toContainText('会话进行中');
+  await expect(active.locator('.task-wait-mark')).toHaveCSS('animation-name', 'task-breathe');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(active.locator('.task-wait-mark')).toHaveCSS('animation-name', 'none');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  reportActive!('awaiting_approval');
+  await expect(active).toContainText('等待你的审批');
+  await expect(active.locator('.task-wait-mark')).toHaveCSS('animation-name', 'none');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await shot(page, '16-会话状态-窄屏');
+  reportActive!('completed');
+  await expect(active).toHaveCount(0);
 });
 
 test('approval modes are described where they are chosen, and models sit behind the effort slider', async ({
