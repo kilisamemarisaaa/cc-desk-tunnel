@@ -4,6 +4,7 @@ import { query, getSessionInfo } from '@anthropic-ai/claude-agent-sdk';
 import type { Query, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { Effort, EventPayload, NativeMetrics, PermissionMode } from '@cc-desk-tunnel/protocol';
 import { ClaudeStream } from './claude-stream.ts';
+import { BackgroundTasks } from './background-tasks.ts';
 import type { SshConnection } from './tunnel.ts';
 import { nativeCapabilities, nativeContextRefresh, nativeMetrics } from './native-controls.ts';
 import type { NativeInput } from './native-input.ts';
@@ -191,19 +192,12 @@ export async function runClaude(
     let background = 0;
     let idle = false;
     let told = false;
+    const taskProgress = new BackgroundTasks(run.emit);
     for await (const message of session) {
+      if (!run.signal.aborted) taskProgress.accept(message);
       if (message.type === 'system' && message.subtype === 'background_tasks_changed') {
         const tasks = message.tasks.filter((task) => !task.ambient);
         background = tasks.length;
-        if (!run.signal.aborted)
-          run.emit({
-            type: 'native.tasks',
-            tasks: tasks.map((task) => ({
-              id: task.task_id,
-              kind: task.task_type,
-              description: task.description,
-            })),
-          });
         // The turn a finished task starts follows at once, announced by the CLI's `init`. When none does,
         // as after the user ended the last task, nothing is left to wait for.
         clearTimeout(settle);

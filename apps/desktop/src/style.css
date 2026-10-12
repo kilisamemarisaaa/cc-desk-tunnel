@@ -1693,10 +1693,21 @@ details[open] > summary > .fold-chevron {
   border-radius: var(--radius-s);
   font-size: 13px;
 }
-.background-tasks li span {
+.background-task-detail {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+.background-task-summary {
+  margin: 5px 0;
+  white-space: pre-wrap;
+  max-height: 8em;
+  overflow: auto;
+}
+.background-task-meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
 }
 .composer-area {
   position: relative;

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import type { Session, SessionEvent } from '@cc-desk-tunnel/protocol';
 import { describe, duration, summarize } from './activity.ts';
+import BackgroundTaskProgress from './BackgroundTaskProgress.tsx';
 import type { Category } from './activity.ts';
 import type { HistoryState } from './client.ts';
 import QuestionCard, { questionsOf } from './QuestionCard.tsx';
@@ -616,7 +617,7 @@ export default function Conversation({
                 <ul>
                   {tasks.map((task) => (
                     <li key={task.id}>
-                      <span>{task.description || task.kind}</span>
+                      <BackgroundTaskProgress task={task} connected={connected} />
                       <button
                         type="button"
                         className="button"

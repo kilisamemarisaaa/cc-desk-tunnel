@@ -286,6 +286,7 @@ test('a run that goes on only for background tasks looks finished, lists them an
     { id: 'b1', kind: 'local_bash', description: '完整渲染' },
     { id: 'b2', kind: 'local_bash', description: '开发服务器' },
   ];
+  let reportProgress: (summary: string, updatedAt: string) => void;
   const stopped: string[] = [];
   await page.routeWebSocket('ws://127.0.0.1:18890/ws', (route) => {
     const reply = (value: unknown) => route.send(JSON.stringify(value));
@@ -296,6 +297,14 @@ test('a run that goes on only for background tasks looks finished, lists them an
       createdAt: now,
       payload,
     });
+    reportProgress = (summary, updatedAt) =>
+      reply({
+        type: 'session.event',
+        event: event(5, {
+          type: 'native.tasks',
+          tasks: [{ ...tasks[0], progress: { summary, elapsedSeconds: 91, updatedAt } }, tasks[1]],
+        }),
+      });
     route.onMessage((raw) => {
       const message = JSON.parse(String(raw));
       if (message.type === 'device') return;
@@ -340,7 +349,7 @@ test('a run that goes on only for background tasks looks finished, lists them an
         stopped.push(message.taskId);
         reply({
           type: 'session.event',
-          event: event(5, { type: 'native.tasks', tasks: [tasks[1]] }),
+          event: event(6, { type: 'native.tasks', tasks: [tasks[1]] }),
         });
       }
       reply({ type: 'response', requestId: message.requestId, ok: true });
@@ -358,11 +367,31 @@ test('a run that goes on only for background tasks looks finished, lists them an
   const panel = page.locator('.background-tasks');
   await expect(panel.getByRole('status')).toContainText('后台任务 2 个');
   await expect(panel.getByRole('listitem')).toHaveText([/完整渲染/, /开发服务器/]);
+  await expect(panel.getByText('任务尚未报告进度', { exact: true })).toHaveCount(2);
+  reportProgress!(
+    '[19/41] WebKit home <script>not code</script>',
+    new Date(Date.now() - 120000).toISOString(),
+  );
+  await expect(panel.locator('.background-task-summary')).toHaveText(
+    '[19/41] WebKit home <script>not code</script>',
+  );
+  await expect(panel).toContainText('已运行 1 分 31 秒');
+  await expect(panel).toContainText('未收到新进度');
+  expect(await panel.locator('script').count()).toBe(0);
+  reportProgress!('[20/41] WebKit next test', new Date().toISOString());
+  await expect(panel.locator('.background-task-summary')).toHaveText('[20/41] WebKit next test');
+  await expect(panel).not.toContainText('未收到新进度');
+  await expect(panel.getByText('任务尚未报告进度', { exact: true })).toHaveCount(1);
   // The turn itself is over: its answer shows as final, and the composer offers sending, not stopping.
   await expect(page.locator('.message.assistant')).toContainText('渲染已在后台开始。');
   await expect(page.getByRole('button', { name: '停止运行', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '发送消息', exact: true })).toBeVisible();
   await shot(page, '15-后台任务');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(panel.locator('.background-task-summary')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await shot(page, '15-后台任务-窄屏');
+  await page.setViewportSize({ width: 1280, height: 900 });
   await panel.getByRole('listitem').first().getByRole('button', { name: '结束' }).click();
   await expect(panel.getByRole('listitem')).toHaveText([/开发服务器/]);
   expect(stopped).toEqual(['b1']);

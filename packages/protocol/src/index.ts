@@ -229,7 +229,21 @@ export const eventPayloadSchema = z.discriminatedUnion('type', [
   // The background tasks alive in the run's CLI; each list replaces the one before.
   z.object({
     type: z.literal('native.tasks'),
-    tasks: z.array(z.object({ id: z.string().min(1), kind: z.string(), description: z.string() })),
+    tasks: z.array(
+      z.object({
+        id: z.string().min(1),
+        kind: z.string(),
+        description: z.string(),
+        // Optional for older services and tasks which do not report progress.
+        progress: z
+          .object({
+            summary: z.string().max(1000).optional(),
+            elapsedSeconds: z.number().nonnegative(),
+            updatedAt: timestamp,
+          })
+          .optional(),
+      }),
+    ),
   }),
   z.object({
     type: z.literal('native.capabilities'),
